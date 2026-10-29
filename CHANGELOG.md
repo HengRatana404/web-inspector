@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.1 — 2026-10-29
+
+- Simpler repository layout: the plugin now sits at the top of the repository instead of under
+  `plugins/web-inspector/`. Nothing changes for users: install and update the same way.
+
 ## 1.1.0 — 2026-10-29
 
 - Read-only security check (`npm run security -- <url> --i-own-this`): exposed secret files, unsafe

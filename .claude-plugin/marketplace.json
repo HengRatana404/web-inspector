@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "web-inspector",
-      "source": "./plugins/web-inspector",
+      "source": "./",
       "description": "Scan, security check, click-and-type journeys and load testing for websites you own, with HTML reports."
     }
   ]

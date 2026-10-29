@@ -86,7 +86,7 @@ attached to each run.
 ## Using it without Claude
 
 The tools are plain Node.js scripts, so you can also run them yourself. Copy the
-[`template`](plugins/web-inspector/skills/web-inspector/template) folder into your project, then:
+[`template`](skills/web-inspector/template) folder into your project, then:
 
 ```
 npm install
@@ -96,7 +96,7 @@ npm run journeys -- https://your-site.com
 npm run test:smoke -- https://your-site.com
 ```
 
-The [template README](plugins/web-inspector/skills/web-inspector/template/README.md) explains every
+The [template README](skills/web-inspector/template/README.md) explains every
 command and option.
 
 ---
@@ -143,18 +143,18 @@ command and option.
 ## Project layout
 
 ```
-.claude-plugin/marketplace.json      the list Claude Code reads when you add this repository
-plugins/web-inspector/
-├── .claude-plugin/plugin.json       plugin name and version
-└── skills/web-inspector/
-    ├── SKILL.md                     instructions Claude follows
-    └── template/                    the kit Claude copies into your project
-        ├── scan.js                  site scan
-        ├── security.js              read-only security check
-        ├── journeys.js + journeys.txt   click-and-type tests
-        ├── run-all.js, load.yml, browser.yml   load test
-        ├── report-html.js           HTML reports
-        └── github-workflow.yml      automatic GitHub checks
+.claude-plugin/
+├── marketplace.json                 the list Claude Code reads when you add this repository
+└── plugin.json                      plugin name and version
+skills/web-inspector/
+├── SKILL.md                         instructions Claude follows
+└── template/                        the kit Claude copies into your project
+    ├── scan.js                      site scan
+    ├── security.js                  read-only security check
+    ├── journeys.js + journeys.txt   click-and-type tests
+    ├── run-all.js, load.yml, browser.yml   load test
+    ├── report-html.js               HTML reports
+    └── github-workflow.yml          automatic GitHub checks
 ```
 
 Built with [Playwright](https://playwright.dev), [Artillery](https://www.artillery.io) and
