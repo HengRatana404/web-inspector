@@ -1,0 +1,15 @@
+{
+  "name": "web-inspector",
+  "description": "web-inspector: full QA for websites you own.",
+  "owner": {
+    "name": "HengRatana404",
+    "url": "https://github.com/HengRatana404"
+  },
+  "plugins": [
+    {
+      "name": "web-inspector",
+      "source": "./plugins/web-inspector",
+      "description": "Scan, security check, click-and-type journeys and load testing for websites you own, with HTML reports."
+    }
+  ]
+}
