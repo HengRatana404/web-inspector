@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.2.0 — 2026-10-30
+
+- Site scan has new checks, ideas taken from similar tools: keyboard check (Tab shows no visible focus, or a
+  keyboard trap), files sent without compression or cache rules, missing viewport tag, missing social share
+  tags (og:title / og:image), and `--fail-on-new` to fail a CI run only when a problem is new.
+- New `npm run zap`: runs OWASP ZAP (in Docker) as an active security scan of a STAGING copy of your site and
+  rewrites its findings in plain words. Refuses to run without `--i-own-this` and `--staging`. The kit
+  contains no attack code of its own: ZAP does the testing.
+- New `npm run lighthouse`: Google Lighthouse scores (0-100) for Performance, Accessibility, SEO and Best
+  practices, on a phone or desktop, with an HTML report. Same numbers as PageSpeed Insights.
+- New `npm run visual`: screenshots of your pages (phone and desktop) compared with the last approved look,
+  with pictures of what changed. Catches broken layouts that other checks cannot see.
+
 ## 1.1.1 — 2026-10-29
 
 - Simpler repository layout: the plugin now sits at the top of the repository instead of under

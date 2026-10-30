@@ -6,6 +6,7 @@
 //   --auth         use a login saved with `npm run login` (scans pages behind the login)
 //   --no-external  skip checking links that point to other websites
 //   --no-a11y      skip the accessibility check
+//   --fail-on-new  exit with an error when a problem is new since the last scan (for CI)
 //
 // Safe for live sites: it only opens pages. It never clicks buttons, submits forms or types,
 // and skips links that look like logout / delete / cart actions / downloads.
@@ -31,6 +32,9 @@ const LCP_GOOD_MS = 2500;
 const LCP_POOR_MS = 4000;
 const CLS_GOOD = 0.1;
 const CLS_POOR = 0.25;
+const KEYBOARD_TABS = 12; // how many times Tab is pressed on each page
+const MAX_FILES_PER_ISSUE = 10; // cache / compression problems list at most this many files
+const COMPRESS_MIN_BYTES = 1500;
 const META_DESCRIPTION = { min: 50, max: 160 };
 // Phone check: Lighthouse's mobile settings (slow 4G network, CPU 4x slower than this computer).
 const PHONE = { latencyMs: 150, downKbps: 1638, upKbps: 750, cpuSlowdown: 4 };
@@ -49,12 +53,13 @@ const show = argv.includes('--show');
 const checkExternal = !argv.includes('--no-external');
 const checkA11y = !argv.includes('--no-a11y');
 const checkMobile = !argv.includes('--no-phone');
+const failOnNew = argv.includes('--fail-on-new');
 const maxPages = Number(flag('--max-pages') || 100);
 const authFile = flag('--auth');
 const valueIdx = new Set(['--max-pages', '--auth'].map((f) => argv.indexOf(f) + 1).filter((i) => i > 0));
 const target = argv.find((a, i) => !a.startsWith('--') && !valueIdx.has(i));
 if (!/^https?:\/\//.test(target || '')) {
-  console.error('Usage: node scan.js <https://your-site.com> [--max-pages N] [--auth auth.json] [--no-external] [--no-a11y] [--show]');
+  console.error('Usage: node scan.js <https://your-site.com> [--max-pages N] [--auth auth.json] [--no-external] [--no-a11y] [--fail-on-new] [--show]');
   process.exit(1);
 }
 let storageState;
@@ -72,6 +77,7 @@ const axeSource = checkA11y ? fs.readFileSync(require.resolve('axe-core/axe.min.
 // ---- issue collection: the same broken image on 20 pages is one line listing those pages.
 // `subject` is what the issue is about (usually a URL); it stays the same between runs even when the
 // detail has numbers in it (load times, sizes), so runs can be compared.
+const fileIssueCount = { cache: 0, compress: 0 };
 const issues = new Map();
 function add(severity, type, detail, pageUrl, subject = detail) {
   const key = `${type}|${detail}`;
@@ -83,6 +89,36 @@ let siteOrigin = new URL(target).origin; // replaced by the real origin after re
 const isOurs = (u) => sameSite(u, siteOrigin);
 const isLocal = (u) => /^(localhost|127\.|\[::1\])/.test(new URL(u).hostname);
 const kb = (bytes) => `${Math.round(bytes / 1024)} KB`;
+// Keyboard check: press Tab through the page. Finds focus that cannot be seen and keyboard traps.
+async function keyboardCheck(page) {
+  await page.evaluate(() => {
+    document.activeElement?.blur?.();
+    window.scrollTo(0, 0);
+  });
+  const stops = [];
+  for (let i = 0; i < KEYBOARD_TABS; i++) {
+    await page.keyboard.press('Tab');
+    const stop = await page
+      .evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body || el === document.documentElement) return null;
+        const look = () => {
+          const s = getComputedStyle(el);
+          return { outline: s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0, shadow: s.boxShadow !== 'none', sig: [s.backgroundColor, s.borderColor, s.color, s.textDecorationLine].join('|') };
+        };
+        const focused = look();
+        el.blur();
+        const plain = look();
+        el.focus();
+        const name = (el.getAttribute('aria-label') || el.textContent || el.getAttribute('href') || el.name || '').trim().slice(0, 40);
+        return { id: el.tagName.toLowerCase() + '|' + (el.id || '') + '|' + name, label: el.tagName.toLowerCase() + (name ? ` "${name}"` : ''), visible: focused.outline || focused.shadow || focused.sig !== plain.sig };
+      })
+      .catch(() => null);
+    if (stop) stops.push(stop);
+  }
+  return stops;
+}
+
 function canonical(href) {
   try {
     const u = new URL(href, siteOrigin);
@@ -308,6 +344,18 @@ async function checkHttps(request, mainHeaders) {
       const u = new URL(res.url());
       apis.add(u.pathname + u.search);
     }
+    if (ours && res.status() === 200 && !isLocal(siteOrigin)) {
+      const h = res.headers();
+      const asset = ['script', 'stylesheet', 'font', 'image'].includes(kind);
+      const size = Number(h['content-length'] || 0);
+      const text = ['script', 'stylesheet'].includes(kind) || /text|json|xml|svg/.test(h['content-type'] || '');
+      if (asset && !h['cache-control'] && !h.expires && fileIssueCount.cache++ < MAX_FILES_PER_ISSUE) {
+        add('warning', 'Performance: file without cache rules', `${res.url()} has no Cache-Control header, so browsers download it again on every visit`, currentUrl, res.url());
+      }
+      if (text && size > COMPRESS_MIN_BYTES && !h['content-encoding'] && fileIssueCount.compress++ < MAX_FILES_PER_ISSUE) {
+        add('warning', 'Performance: file not compressed', `${res.url()} (${kb(size)}) is sent without gzip/brotli`, currentUrl, res.url());
+      }
+    }
     if (res.status() < 400) return;
     if (ours) add('error', `Broken ${kind} (HTTP ${res.status()})`, res.url(), currentUrl);
     else add('warning', `Third-party ${kind} broken (HTTP ${res.status()})`, res.url(), currentUrl);
@@ -394,6 +442,9 @@ async function checkHttps(request, mainHeaders) {
         h1: document.querySelectorAll('h1').length,
         robots: document.querySelector('meta[name="robots"]')?.content || '',
         canonical: document.querySelector('link[rel="canonical"]')?.href || '',
+        viewport: !!document.querySelector('meta[name="viewport"]'),
+        ogTitle: !!document.querySelector('meta[property="og:title"]'),
+        ogImage: !!document.querySelector('meta[property="og:image"]'),
       }));
       const noindex = /noindex/i.test(seo.robots) || /noindex/i.test((response && response.headers()['x-robots-tag']) || '');
       if (noindex) add('warning', 'SEO: page hidden from search engines (noindex)', url, url);
@@ -403,6 +454,8 @@ async function checkHttps(request, mainHeaders) {
       } else (descriptions.get(seo.description) || descriptions.set(seo.description, []).get(seo.description)).push(url);
       if (seo.h1 === 0) add('warning', 'SEO: no <h1> heading', url, url);
       else if (seo.h1 > 1) add('warning', 'SEO: more than one <h1> heading', `${url} has ${seo.h1}`, url, url);
+      if (!seo.viewport) add('warning', 'SEO: no viewport meta tag', `${url} will look zoomed-out on phones`, url, url);
+      if (!seo.ogTitle || !seo.ogImage) add('warning', 'SEO: missing social share tags', `${url} has no ${[!seo.ogTitle && 'og:title', !seo.ogImage && 'og:image'].filter(Boolean).join(' / ')} (links shared on WhatsApp, Facebook, etc. show no preview)`, url, url);
       if (seo.canonical && !isOurs(seo.canonical)) add('warning', 'SEO: canonical link points to another site', `${url} -> ${seo.canonical}`, url, url);
       const info = await page.evaluate(() => {
         const entries = performance.getEntriesByType('resource');
@@ -439,6 +492,22 @@ async function checkHttps(request, mainHeaders) {
           const severity = v.impact === 'critical' ? 'error' : 'warning';
           add(severity, `Accessibility (${v.impact || 'unknown'}): ${v.id}`, `${v.help}${v.example ? ` - e.g. ${v.example}` : ''}`, url);
         }
+      }
+
+      // Keyboard: can you see where you are, and can you get out again?
+      if (checkA11y) {
+        const stops = await keyboardCheck(page);
+        const hidden = stops.filter((st) => !st.visible);
+        if (stops.length >= 3 && hidden.length === stops.length) {
+          add('warning', 'Accessibility: keyboard focus not visible', `${url}: pressing Tab shows no outline or change on ${hidden.slice(0, 3).map((st) => st.label).join(', ')}`, url, url);
+        }
+        for (let i = 0; i + 2 < stops.length; i++) {
+          if (stops[i].id === stops[i + 1].id && stops[i].id === stops[i + 2].id) {
+            add('error', 'Accessibility: keyboard trap', `${url}: Tab cannot leave ${stops[i].label}`, url, url);
+            break;
+          }
+        }
+        await page.evaluate(() => document.activeElement?.blur?.()).catch(() => {});
       }
 
       // Mobile layout: does the page scroll sideways on a phone-size screen?
@@ -703,7 +772,7 @@ async function checkHttps(request, mainHeaders) {
 
   console.log('\n\n' + lines.join('\n'));
   console.log(`\nReport saved: ${base}.html (open in a browser), plus .md and .json`);
-  process.exit(blocked ? 3 : errors.length || !stats.length ? 1 : 0);
+  process.exit(blocked ? 3 : errors.length || !stats.length || (failOnNew && added.length) ? 1 : 0);
 })().catch((err) => {
   console.error('Scan crashed:', err);
   process.exit(2);

@@ -86,6 +86,24 @@ npm run scan -- https://your-site.com --auth auth.json
 Use a test account. `auth.json` holds your session, so keep it private (it is in `.gitignore`) and delete it
 when done.
 
+The scan also presses Tab through each page (keyboard focus must be visible, and focus must not get stuck),
+checks that scripts, styles and images are compressed and cacheable, and checks for the viewport and social
+share (Open Graph) tags. Add `--fail-on-new` to make the command fail only when a problem is new since the last
+scan, which suits automatic checks on an older site with known problems.
+
+## Lighthouse scores
+
+`npm run lighthouse -- https://your-site.com` scores up to 5 pages (the ones the scan found) from 0 to 100 for
+Performance, Accessibility, SEO and Best practices, as a phone on slow 4G. Options: `--desktop`,
+`--max-pages N`, `--min-score N` (default 90). Same numbers as PageSpeed Insights.
+
+## Visual comparison
+
+`npm run visual -- https://your-site.com` takes screenshots on phone and desktop. The first run saves them as
+the approved look; later runs say which pages look different and save pictures of the changes in
+`results/visual/diff`. After a change you wanted, run it again with `--update`. Options: `--threshold P`
+(percent of changed pixels, default 0.5), `--max-pages N`, `--auth auth.json`.
+
 ## 2. Journeys (click and type)
 
 The scan never clicks or types. For search, sign-up, contact forms and checkout, write the steps in plain
@@ -132,7 +150,14 @@ check refuses to run without it, because scanning a site you don't own can be il
 
 Verdict: **PASSED** (nothing found), **REVIEW** (only medium/low), or **FAILED** (at least one high).
 
-### Deep security testing (active): OWASP ZAP
+### Deep security testing (active): `npm run zap`
+
+`npm run zap -- https://staging.your-site.com --i-own-this --staging` runs OWASP ZAP in Docker (Docker Desktop
+must be installed and running) and writes its findings as a plain-words report. It really attacks the site,
+so both flags are required: `--i-own-this` (you own it) and `--staging` (it is a test copy, not the live
+site). It can take from minutes to an hour. Details of ZAP itself:
+
+### OWASP ZAP
 
 This kit stops at safe, read-only checks. To actually probe for injection, XSS and other vulnerabilities,
 use [OWASP ZAP](https://www.zaproxy.org/), the standard free tool — **only against a staging copy you own**,

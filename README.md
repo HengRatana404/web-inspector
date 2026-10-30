@@ -26,9 +26,12 @@ Every run also saves an **HTML report with charts** you can open in a browser or
 |---|---|
 | **Site scan** | Broken pages and links (with the page that links to them), broken images, scripts and APIs, JavaScript errors, console errors, slow and heavy pages, layout that is too wide on phones |
 | **Phone speed** | Core Web Vitals (LCP, CLS) measured as a phone on a slow 4G network, the same settings Google's Lighthouse uses |
-| **Accessibility** | Missing alt text and labels, low contrast, missing page language, buttons with no name and more (WCAG 2.x A/AA, using [axe-core](https://github.com/dequelabs/axe-core)) |
+| **Accessibility** | Keyboard focus you cannot see, keyboard traps, missing alt text and labels, low contrast, missing page language, buttons with no name and more (WCAG 2.x A/AA, using [axe-core](https://github.com/dequelabs/axe-core)) |
+| **Speed hygiene** | Files sent uncompressed or without cache rules |
 | **SEO** | Missing or duplicate titles and descriptions, missing headings, pages hidden from Google by mistake, robots.txt blocking everything |
 | **Security (read-only)** | Exposed secret files (`.env`, `.git`, database dumps), unsafe cookies, missing security headers, HTTPS and certificate problems |
+| **Lighthouse scores** | Google's 0-100 scores for performance, accessibility, SEO and best practices, the same numbers as PageSpeed Insights |
+| **Visual comparison** | Screenshots on phone and desktop compared with the last approved look, with pictures of what changed |
 | **Journeys** | Forms, search and checkout tested by clicking and typing, from steps you write in plain words |
 | **Load test** | Hundreds to thousands of visitors at once, plus a few real browsers, with one PASSED / FAILED verdict |
 | **Before and after** | Each scan is compared with the last one: "New problems: 0, Fixed: 5" |
@@ -120,8 +123,8 @@ command and option.
 ## What it can't do
 
 - Sites that require a CAPTCHA
-- Judging visual design (whether it *looks* right)
-- Active security testing (injection, XSS): use OWASP ZAP on staging, or a code security review
+- Judging visual design (whether it *looks* good); it only notices when a page *changes*
+- Active security testing on a live site. On a staging copy you own, `npm run zap` runs OWASP ZAP for you (needs Docker); a code security review is the safer alternative
 - Accessibility issues only a person can judge; automated checks find roughly half
 - More than about 1,000 visitors at the same moment from one laptop; for more, run the load test from the
   cloud (`npx artillery run-fargate`)
