@@ -91,6 +91,16 @@ checks that scripts, styles and images are compressed and cacheable, and checks 
 share (Open Graph) tags. Add `--fail-on-new` to make the command fail only when a problem is new since the last
 scan, which suits automatic checks on an older site with known problems.
 
+## Several websites at once
+
+Put your own sites in `sites.txt` (one address per line), then `npm run sites -- --i-own-this`. Each site is
+scanned in turn and you get one summary page (pass/fail, errors, warnings, new and fixed since last time per
+site). Options such as `--no-external` and `--no-phone` are passed on to the scan.
+
+## How to fix
+
+Every problem in the scan reports has a "How to fix" line in plain words, often with a line of code to copy.
+
 ## Lighthouse scores
 
 `npm run lighthouse -- https://your-site.com` scores up to 5 pages (the ones the scan found) from 0 to 100 for

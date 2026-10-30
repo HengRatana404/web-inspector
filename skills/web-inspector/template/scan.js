@@ -16,6 +16,7 @@ const tls = require('tls');
 const { chromium } = require('playwright');
 const { sameSite, looksLikeBotCheck } = require('./site');
 const { esc, barChart, writeHtmlReport } = require('./report-html');
+const { fixFor } = require('./fixes');
 
 const SLOW_PAGE_MS = 3000; // a page taking longer than this to load is an error
 const PAGE_TIMEOUT_MS = 30000;
@@ -670,6 +671,8 @@ async function checkHttps(request, mainHeaders) {
       '',
     );
   }
+  // Advice is the same for every item of one kind, except security headers (one tip per header).
+  const byTypeFix = (type, items) => (type === 'Missing security header' ? null : fixFor(type, items[0].detail));
   for (const [title, group] of [['ERRORS (must fix)', errors], ['WARNINGS (should fix, or not yours to fix)', warnings]]) {
     if (!group.length) continue;
     lines.push(`## ${title}`, '');
@@ -677,10 +680,14 @@ async function checkHttps(request, mainHeaders) {
     for (const i of group) (byType[i.type] ||= []).push(i);
     for (const [type, items] of Object.entries(byType)) {
       lines.push(`### ${type} (${items.length})`);
+      const typeFix = byTypeFix(type, items);
+      if (typeFix) lines.push(`How to fix: ${typeFix}`);
       for (const i of items) {
         const pages = [...i.pages];
         const on = pages.length ? ` - on ${pages.slice(0, 3).join(', ')}${pages.length > 3 ? ` and ${pages.length - 3} more` : ''}` : '';
-        lines.push(`- ${i.detail}${on}`);
+        const headerFix = type === 'Missing security header' ? fixFor(type, i.detail) : null;
+        lines.push(`- ${i.detail}${on}${headerFix ? `
+  How to fix: ${headerFix}` : ''}`);
       }
       lines.push('');
     }
@@ -701,7 +708,7 @@ async function checkHttps(request, mainHeaders) {
         pagesScanned: stats.length,
         coreWebVitals: { thisComputer: vitalsByPage, phone: phoneVitals },
         comparison,
-        issues: list.map((i) => ({ severity: i.severity, type: i.type, detail: i.detail, subject: i.subject, pages: [...i.pages] })),
+        issues: list.map((i) => ({ severity: i.severity, type: i.type, detail: i.detail, subject: i.subject, pages: [...i.pages], fix: fixFor(i.type, i.detail) })),
       },
       null,
       2,
@@ -713,7 +720,8 @@ async function checkHttps(request, mainHeaders) {
     `<ul>${items
       .map((i) => {
         const pages = [...(i.pages || [])];
-        return `<li class="${i.severity === 'error' ? 'bad' : 'warn'}"><b>${esc(i.type)}</b>: ${esc(i.detail)}${
+        const fix = fixFor(i.type, i.detail);
+        return `<li class="${i.severity === 'error' ? 'bad' : 'warn'}"><b>${esc(i.type)}</b>: ${esc(i.detail)}${fix ? `<br><span class="muted">How to fix: ${esc(fix)}</span>` : ''}${
           pages.length ? `<br><span class="muted">on ${pages.slice(0, 5).map(esc).join(', ')}${pages.length > 5 ? ` and ${pages.length - 5} more` : ''}</span>` : ''
         }</li>`;
       })

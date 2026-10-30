@@ -1,6 +1,6 @@
 {
   "name": "web-inspector",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "private": true,
   "description": "Website QA: full-site bug, accessibility, SEO, speed and HTTPS scan, plus load test. Uses Playwright, axe-core and Artillery.",
   "scripts": {
@@ -13,7 +13,8 @@
     "test:medium": "node run-all.js medium",
     "test:heavy": "node run-all.js heavy",
     "lighthouse": "node lighthouse.js",
-    "visual": "node visual.js"
+    "visual": "node visual.js",
+    "sites": "node sites.js"
   },
   "devDependencies": {
     "artillery": "^2.0.34",

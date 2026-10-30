@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-10-30
+
+- Every scan finding now has a "How to fix" line (plain words, with a code example where possible) in the
+  Markdown, HTML and JSON reports.
+- New `npm run sites`: scans every site in `sites.txt` and writes one summary page. Each site keeps its own
+  new / fixed history.
+- `SKILL.md` has a "fix it and prove it" workflow: fix the findings in the site's code, re-scan, and show
+  that they are Fixed with no New problems.
+
 ## 1.2.1 — 2026-10-30
 
 - Fix: `npm run lighthouse` and `npm run visual` could not open the extra pages found by the scan (they were

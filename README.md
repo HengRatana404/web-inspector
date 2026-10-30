@@ -32,6 +32,8 @@ Every run also saves an **HTML report with charts** you can open in a browser or
 | **Security (read-only)** | Exposed secret files (`.env`, `.git`, database dumps), unsafe cookies, missing security headers, HTTPS and certificate problems |
 | **Lighthouse scores** | Google's 0-100 scores for performance, accessibility, SEO and best practices, the same numbers as PageSpeed Insights |
 | **Visual comparison** | Screenshots on phone and desktop compared with the last approved look, with pictures of what changed |
+| **How to fix** | Every problem comes with plain-words advice and, where possible, a line of code to copy |
+| **Many sites** | List your sites once and check them all with one command, with one summary page |
 | **Journeys** | Forms, search and checkout tested by clicking and typing, from steps you write in plain words |
 | **Load test** | Hundreds to thousands of visitors at once, plus a few real browsers, with one PASSED / FAILED verdict |
 | **Before and after** | Each scan is compared with the last one: "New problems: 0, Fixed: 5" |

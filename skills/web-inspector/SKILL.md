@@ -23,6 +23,8 @@ user-facing guide with every option.
 | `lighthouse.js` | Lighthouse 0-100 scores per page (`npm run lighthouse -- <url>`, `--desktop`, `--min-score N`) |
 | `visual.js` | Screenshots phone + desktop, compared with the approved baseline (`npm run visual -- <url>`; `--update` approves the new look). Pages with ads or clocks differ by themselves |
 | `zap.js` | Launcher for OWASP ZAP (Docker) = ACTIVE security scan of a STAGING copy. Requires `--i-own-this --staging`. The USER runs it, not Claude |
+| `fixes.js` | Plain-words "How to fix" advice (with copy-paste examples) attached to every scan finding in the reports |
+| `sites.js` + `sites.txt` | Scans every site listed in `sites.txt` and writes one summary (`npm run sites -- --i-own-this`); each site keeps its own new/fixed history |
 | `github-workflow.yml` | GitHub Actions setup: scan + Lighthouse + visual comparison + journeys weekly or on demand, optional smoke load test, reports as artifacts |
 
 ## Before anything runs
@@ -70,7 +72,15 @@ user-facing guide with every option.
 6. **Load test**: `npm run test:smoke -- <url>`, then `medium`, then `heavy`, each only if the previous one is
    clean and the user agrees. Run medium/heavy in the background (2-3 minutes). During it, suggest watching
    the server's CPU, memory and logs: the test shows what breaks, the server shows why.
-7. **Automatic checks**, if the user wants them: explain the setup at the top of `github-workflow.yml`
+7. **Fix it and prove it**, when the user gives you the website's source code folder (or says to fix what the
+   scan found): read the scan's "How to fix" lines, make the smallest change for each finding in their code
+   (for example `lang` on `<html>`, a `<label>`, a meta description), ask before changing anything risky
+   (security headers, redirects, layout), then run the scan again on the deployed or local copy. The
+   "Compared with the last scan" section must show them as Fixed and no New problems; report that. Findings
+   marked third-party are not theirs to fix.
+8. **Several sites**: put the user's own sites in `sites.txt` (one address per line) and run
+   `npm run sites -- --i-own-this`. Confirm ownership of every listed site first.
+9. **Automatic checks**, if the user wants them: explain the setup at the top of `github-workflow.yml`
    (copy to `.github/workflows/`, add a `SITE_URL` repository variable). Do not push or change repository
    settings for them without asking.
 
