@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2 — 2026-10-30
+
+- Plugin description and keywords now describe everything the kit does (Lighthouse, screenshot comparison,
+  keyboard check, how-to-fix advice, many sites).
+
 ## 1.3.1 — 2026-10-30
 
 - Fix: `npm run visual` could cut very long pages short (only what fit on screen was captured).
