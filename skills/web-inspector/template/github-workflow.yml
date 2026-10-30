@@ -55,9 +55,22 @@ jobs:
           restore-keys: web-inspector-results-
 
       - name: Site scan
+        # On a site with known problems, use `npm run scan -- "$SITE_URL" --fail-on-new` to fail only on new ones.
         run: npm run scan -- "$SITE_URL"
 
-      - name: Journeys (click-and-type checks in journeys.txt)
+      # Google Lighthouse scores for the first few pages (informational; fails the run if a score is under 90).
+      - name: Lighthouse scores
+        if: always()
+        run: npm run lighthouse -- "$SITE_URL"
+
+      # Compares screenshots with the last approved look (kept in the cached results folder). The first run
+      # only saves them; after that a page that looks different fails the run. To approve a wanted change, delete
+      # the cache (Actions > Caches), or remove this step if the site changes often.
+      - name: Visual comparison
+        if: always()
+        run: npm run visual -- "$SITE_URL"
+
+      - name: Journeys (click and type checks in journeys.txt)
         if: always()
         run: npm run journeys -- "$SITE_URL"
 
@@ -75,4 +88,5 @@ jobs:
             web-inspector/results/*.md
             web-inspector/results/*.json
             web-inspector/results/*.png
+            web-inspector/results/visual/diff/*.png
             web-inspector/results/*.log

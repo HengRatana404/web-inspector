@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.1 — 2026-10-30
+
+- Fix: `npm run lighthouse` and `npm run visual` could not open the extra pages found by the scan (they were
+  saved as paths like `/login`). Both now score and compare every scanned page.
+- Fix: the keyboard check no longer reports a false "keyboard trap" inside widgets such as captchas, and a
+  trap is now a warning, not an error.
+- GitHub Actions file now also runs Lighthouse and the visual comparison.
+- `SKILL.md` documents `npm run zap` (the user runs it, on staging only), Lighthouse, the visual comparison
+  and the new scan checks. Added a plugin icon.
+
 ## 1.2.0 — 2026-10-30
 
 - Site scan has new checks, ideas taken from similar tools: keyboard check (Tab shows no visible focus, or a

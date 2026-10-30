@@ -44,7 +44,7 @@ const level = (s) => (s >= GOOD ? 'good' : s >= OK ? 'warn' : 'bad');
   if (urls.length === 1 && fs.existsSync(pagesFile)) {
     try {
       const saved = JSON.parse(fs.readFileSync(pagesFile, 'utf8'));
-      if (sameSite(saved.start, urls[0])) pages = [...new Set([urls[0], ...saved.pages])];
+      if (sameSite(saved.start, urls[0])) pages = [...new Set([urls[0], ...saved.pages.map((p) => (/^https?:/.test(p) ? p : saved.site + p))])];
     } catch {}
   }
   pages = pages.slice(0, maxPages);

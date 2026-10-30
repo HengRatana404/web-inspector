@@ -22,7 +22,8 @@ user-facing guide with every option.
 | `site.js` | Shared: same-site check (www and http/https count as the same site), bot-check page detection |
 | `lighthouse.js` | Lighthouse 0-100 scores per page (`npm run lighthouse -- <url>`, `--desktop`, `--min-score N`) |
 | `visual.js` | Screenshots phone + desktop, compared with the approved baseline (`npm run visual -- <url>`; `--update` approves the new look). Pages with ads or clocks differ by themselves |
-| `github-workflow.yml` | GitHub Actions setup: scan + journeys weekly or on demand, optional smoke load test, reports as artifacts |
+| `zap.js` | Launcher for OWASP ZAP (Docker) = ACTIVE security scan of a STAGING copy. Requires `--i-own-this --staging`. The USER runs it, not Claude |
+| `github-workflow.yml` | GitHub Actions setup: scan + Lighthouse + visual comparison + journeys weekly or on demand, optional smoke load test, reports as artifacts |
 
 ## Before anything runs
 
@@ -47,7 +48,7 @@ user-facing guide with every option.
    `--channel chrome` from the `login` script, then run `npx playwright install chromium`. On Windows keep
    the folder path short: deep paths hit the 260-character limit.
 2. **Scan first**: `npm run scan -- <url>`. Options: `--max-pages N` (default 100), `--auth auth.json`,
-   `--no-external`, `--no-a11y`, `--no-phone`, `--show`. Exit codes: 0 passed, 1 errors, 3 blocked. The phone
+   `--no-external`, `--no-a11y`, `--no-phone`, `--fail-on-new` (exit 1 only for problems new since the last scan), `--show`. It also presses Tab through each page (invisible focus, keyboard traps) and checks compression, caching, viewport and social-share tags. Exit codes: 0 passed, 1 errors, 3 blocked. The phone
    speed check adds roughly 2-5 s per page (up to 10 pages). Keep the `results/` folder between runs: each
    scan lists what is new and what got fixed, which is the quickest way to confirm a fix worked.
 3. **Journeys**, when the user cares about forms, search, sign-up or checkout: write the steps into
@@ -57,13 +58,19 @@ user-facing guide with every option.
    or "Thank you"): `expect url` alone passes even when the new page says "Something went wrong".
 4. **Security check**, when the user wants to check their own site for security issues: confirm they own the
    site or have written permission, then `npm run security -- <url> --i-own-this`. It is read-only and safe
-   on live sites. It is NOT a penetration test: for active testing (injection, XSS, auth), point the user to
-   OWASP ZAP against a staging copy (the README has the command). Never run active attack tools yourself, and
-   never test a site the user does not own.
-5. **Load test**: `npm run test:smoke -- <url>`, then `medium`, then `heavy`, each only if the previous one is
+   on live sites. It is NOT a penetration test. For active testing (injection, XSS, auth) the user can run
+   `npm run zap -- <staging-url> --i-own-this --staging` themselves (needs Docker Desktop; it really attacks
+   the site, so staging copy only, never live). Explain this and let the user start it; do not run active
+   attacks yourself, and never test a site the user does not own. A code security review is the safer
+   alternative that needs no running site.
+5. **Scores and looks**, when the user cares about Google-style scores or "did my change break how it looks":
+   `npm run lighthouse -- <url>` (0-100 per category; `--desktop`, `--min-score N`) and
+   `npm run visual -- <url>` (first run saves the approved look; later runs list pages that changed, and
+   `--update` approves a change the user wanted). Pages with ads or clocks differ by themselves.
+6. **Load test**: `npm run test:smoke -- <url>`, then `medium`, then `heavy`, each only if the previous one is
    clean and the user agrees. Run medium/heavy in the background (2-3 minutes). During it, suggest watching
    the server's CPU, memory and logs: the test shows what breaks, the server shows why.
-6. **Automatic checks**, if the user wants them: explain the setup at the top of `github-workflow.yml`
+7. **Automatic checks**, if the user wants them: explain the setup at the top of `github-workflow.yml`
    (copy to `.github/workflows/`, add a `SITE_URL` repository variable). Do not push or change repository
    settings for them without asking.
 

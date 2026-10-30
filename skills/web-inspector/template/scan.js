@@ -100,8 +100,13 @@ async function keyboardCheck(page) {
     await page.keyboard.press('Tab');
     const stop = await page
       .evaluate(() => {
-        const el = document.activeElement;
+        let el = document.activeElement;
         if (!el || el === document.body || el === document.documentElement) return null;
+        // Inside a widget (iframe or shadow DOM, e.g. a captcha) the page keeps reporting the same outer element
+        // while Tab moves within it, so look inside where possible and skip what cannot be seen.
+        if (el.tagName === 'IFRAME') return { skip: true };
+        while (el.shadowRoot && el.shadowRoot.activeElement) el = el.shadowRoot.activeElement;
+        if (el.shadowRoot || el.tagName === 'IFRAME') return { skip: true };
         const look = () => {
           const s = getComputedStyle(el);
           return { outline: s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0, shadow: s.boxShadow !== 'none', sig: [s.backgroundColor, s.borderColor, s.color, s.textDecorationLine].join('|') };
@@ -114,7 +119,7 @@ async function keyboardCheck(page) {
         return { id: el.tagName.toLowerCase() + '|' + (el.id || '') + '|' + name, label: el.tagName.toLowerCase() + (name ? ` "${name}"` : ''), visible: focused.outline || focused.shadow || focused.sig !== plain.sig };
       })
       .catch(() => null);
-    if (stop) stops.push(stop);
+    if (stop) stops.push(stop.skip ? { id: `skip${i}`, label: 'widget', visible: true } : stop);
   }
   return stops;
 }
@@ -501,9 +506,9 @@ async function checkHttps(request, mainHeaders) {
         if (stops.length >= 3 && hidden.length === stops.length) {
           add('warning', 'Accessibility: keyboard focus not visible', `${url}: pressing Tab shows no outline or change on ${hidden.slice(0, 3).map((st) => st.label).join(', ')}`, url, url);
         }
-        for (let i = 0; i + 2 < stops.length; i++) {
-          if (stops[i].id === stops[i + 1].id && stops[i].id === stops[i + 2].id) {
-            add('error', 'Accessibility: keyboard trap', `${url}: Tab cannot leave ${stops[i].label}`, url, url);
+        for (let i = 0; i + 4 < stops.length; i++) {
+          if ([1, 2, 3, 4].every((k) => stops[i].id === stops[i + k].id)) {
+            add('warning', 'Accessibility: keyboard trap', `${url}: Tab cannot leave ${stops[i].label}`, url, url);
             break;
           }
         }
