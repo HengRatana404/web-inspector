@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.3 — 2026-10-30
+
+- License: MIT removed. From this version the code is all rights reserved. Versions up to 1.3.2 stay MIT-licensed
+  for anyone who already has them.
+
 ## 1.3.2 — 2026-10-30
 
 - Plugin description and keywords now describe everything the kit does (Lighthouse, screenshot comparison,
