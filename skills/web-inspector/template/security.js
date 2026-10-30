@@ -164,9 +164,8 @@ function checkCert(host, port) {
   });
   for (const p of pages) {
     const url = origin + p;
-    let resp;
     try {
-      resp = await page.goto(url, { waitUntil: 'load', timeout: 20000 });
+      await page.goto(url, { waitUntil: 'load', timeout: 20000 });
     } catch {
       continue;
     }

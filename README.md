@@ -150,15 +150,20 @@ command and option.
 ```
 .claude-plugin/
 ├── marketplace.json                 the list Claude Code reads when you add this repository
-└── plugin.json                      plugin name and version
+├── plugin.json                      plugin name and version
+└── icon.png                         plugin icon
 skills/web-inspector/
 ├── SKILL.md                         instructions Claude follows
 └── template/                        the kit Claude copies into your project
-    ├── scan.js                      site scan
+    ├── scan.js + fixes.js           site scan, with "How to fix" advice
+    ├── sites.js + sites.txt         check several of your sites in one go
+    ├── lighthouse.js                Lighthouse 0-100 scores
+    ├── visual.js                    screenshot comparison
     ├── security.js                  read-only security check
+    ├── zap.js                       OWASP ZAP launcher (staging only)
     ├── journeys.js + journeys.txt   click-and-type tests
     ├── run-all.js, load.yml, browser.yml   load test
-    ├── report-html.js               HTML reports
+    ├── report-html.js, site.js      HTML reports, shared helpers
     └── github-workflow.yml          automatic GitHub checks
 ```
 

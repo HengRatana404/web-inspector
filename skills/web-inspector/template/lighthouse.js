@@ -5,20 +5,30 @@
 // Usage: node lighthouse.js <url> [more urls...] [--desktop] [--max-pages N] [--min-score N]
 //   --desktop      score as a desktop computer instead of a phone
 //   --max-pages N  how many pages to score (default 5; each takes about 30 seconds)
-//   --min-score N  a score under N is an error (default 90); under 90 but over N-... is only a warning
+//   --min-score N  a page with any score under N fails the run (default 90)
 //
 // Read-only: it only opens pages in a fresh Chrome. Run it on sites you own.
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 const { chromium } = require('playwright');
-const { sameSite } = require('./site');
+const { pagesToCheck } = require('./site');
 const { esc, barChart, writeHtmlReport } = require('./report-html');
 
 const CATEGORIES = ['performance', 'accessibility', 'seo', 'best-practices'];
 const LABEL = { performance: 'Performance', accessibility: 'Accessibility', seo: 'SEO', 'best-practices': 'Best practices' };
 const GOOD = 90;
 const OK = 50;
-const DEBUG_PORT = 9333;
+
+// A free port on this computer for Chrome's debugging connection (a fixed one could already be taken).
+const freePort = () =>
+  new Promise((resolve, reject) => {
+    const srv = net.createServer().once('error', reject);
+    srv.listen(0, '127.0.0.1', () => {
+      const { port } = srv.address();
+      srv.close(() => resolve(port));
+    });
+  });
 
 const argv = process.argv.slice(2);
 const flag = (name) => {
@@ -38,16 +48,8 @@ if (!urls.length) {
 const level = (s) => (s >= GOOD ? 'good' : s >= OK ? 'warn' : 'bad');
 
 (async () => {
-  // Use the pages the scan found when only the home page was given.
-  let pages = urls;
-  const pagesFile = path.join(__dirname, 'results', 'pages.json');
-  if (urls.length === 1 && fs.existsSync(pagesFile)) {
-    try {
-      const saved = JSON.parse(fs.readFileSync(pagesFile, 'utf8'));
-      if (sameSite(saved.start, urls[0])) pages = [...new Set([urls[0], ...saved.pages.map((p) => (/^https?:/.test(p) ? p : saved.site + p))])];
-    } catch {}
-  }
-  pages = pages.slice(0, maxPages);
+  // The home page plus the pages the last scan found (or just the URLs given).
+  const pages = pagesToCheck(urls, maxPages, path.join(__dirname, 'results'));
 
   let lighthouse;
   try {
@@ -58,10 +60,11 @@ const level = (s) => (s >= GOOD ? 'good' : s >= OK ? 'warn' : 'bad');
   }
 
   // Lighthouse drives a normal Chrome over its debugging port; keep that port on this computer only.
+  const debugPort = await freePort();
   const browser = await chromium.launch({
     channel: 'chrome',
     headless: true,
-    args: [`--remote-debugging-port=${DEBUG_PORT}`, '--remote-debugging-address=127.0.0.1'],
+    args: [`--remote-debugging-port=${debugPort}`, '--remote-debugging-address=127.0.0.1'],
   });
   const rows = [];
   try {
@@ -69,7 +72,7 @@ const level = (s) => (s >= GOOD ? 'good' : s >= OK ? 'warn' : 'bad');
       console.log(`Scoring ${url} ...`);
       try {
         const flags = {
-          port: DEBUG_PORT,
+          port: debugPort,
           output: 'json',
           logLevel: 'error',
           onlyCategories: CATEGORIES,

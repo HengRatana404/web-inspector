@@ -253,7 +253,7 @@ async function measurePhoneVitals(browser, storageState, pages) {
       // CLS from the phone only when the desktop pass did not already flag it for this page.
       const clsFlagged = [...issues.values()].some((i) => /CLS/.test(i.type) && i.subject === url);
       vitalsIssues(url, vitals, ' on a phone (slow 4G)', { lcp: true, cls: !clsFlagged });
-    } catch (err) {
+    } catch {
       add('warning', 'Very slow on phones', `${url} did not finish loading within ${PHONE_TIMEOUT_MS / 1000} s on a phone (slow 4G)`, url, url);
       results.push({ url, lcp: null, cls: 0, timedOut: true });
     }

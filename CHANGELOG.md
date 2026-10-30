@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.1 — 2026-10-30
+
+- Fix: `npm run visual` could cut very long pages short (only what fit on screen was captured).
+- Fix: `npm run lighthouse` picks a free port instead of always using 9333, so it no longer fails when
+  another program uses that port.
+- Tidy-up: the "which pages to check" code shared by Lighthouse and the visual comparison now lives in one
+  place (`site.js`); removed unused variables; corrected a wrong option description; the README file list now
+  shows every tool.
+
 ## 1.3.0 — 2026-10-30
 
 - Every scan finding now has a "How to fix" line (plain words, with a code example where possible) in the

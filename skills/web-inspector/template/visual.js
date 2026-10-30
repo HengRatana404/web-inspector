@@ -15,7 +15,7 @@ const path = require('path');
 const { chromium } = require('playwright');
 const { PNG } = require('pngjs');
 const pixelmatch = require('pixelmatch');
-const { sameSite } = require('./site');
+const { pagesToCheck } = require('./site');
 const { esc, writeHtmlReport } = require('./report-html');
 
 const VIEWPORTS = [
@@ -69,15 +69,7 @@ function compare(basePng, nowPng) {
 }
 
 (async () => {
-  let pages = urls;
-  const pagesFile = path.join(__dirname, 'results', 'pages.json');
-  if (urls.length === 1 && fs.existsSync(pagesFile)) {
-    try {
-      const saved = JSON.parse(fs.readFileSync(pagesFile, 'utf8'));
-      if (sameSite(saved.start, urls[0])) pages = [...new Set([urls[0], ...saved.pages.map((p) => (/^https?:/.test(p) ? p : saved.site + p))])];
-    } catch {}
-  }
-  pages = pages.slice(0, maxPages);
+  const pages = pagesToCheck(urls, maxPages, path.join(__dirname, 'results'));
 
   const root = path.join(__dirname, 'results', 'visual');
   const dirs = { baseline: path.join(root, 'baseline'), current: path.join(root, 'current'), diff: path.join(root, 'diff') };
@@ -105,7 +97,9 @@ function compare(basePng, nowPng) {
           });
           await page.waitForTimeout(400);
           const height = await page.evaluate(() => document.documentElement.scrollHeight);
-          const shot = await page.screenshot({ fullPage: true, clip: undefined, ...(height > MAX_HEIGHT ? { fullPage: false, clip: { x: 0, y: 0, width: vp.width, height: MAX_HEIGHT } } : {}) });
+          const shot = await page.screenshot(
+            height > MAX_HEIGHT ? { fullPage: true, clip: { x: 0, y: 0, width: vp.width, height: MAX_HEIGHT } } : { fullPage: true },
+          );
           await page.close();
           const nowFile = path.join(dirs.current, `${name}.png`);
           fs.writeFileSync(nowFile, shot);
